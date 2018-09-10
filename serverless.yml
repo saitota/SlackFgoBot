@@ -1,0 +1,39 @@
+service: FgoBot
+provider:
+  name: aws
+  runtime: python3.6
+  stage:  ${opt:stage, self:custom.defaultStage}
+  region: ${opt:region, self:custom.defaultRegion}
+  profile: ${opt:profile, self:custom.defaultProfile}
+custom:
+  defaultStage: dev
+  defaultRegion: ap-northeast-1
+  defaultProfile: default
+  otherfile:
+    environment:
+      dev: ${file(./environment_dev.yml)}
+      prd: ${file(./environment_prd.yml)}
+  alerts: # alert plugin
+    stages:
+      - dev
+      - prd
+    alarms:
+      - functionErrors
+      - functionThrottles
+functions:
+  fnc:
+    handler: main.handler
+    events:
+      - http:
+          path: /
+          method: POST
+    environment:
+      ${self:custom.otherfile.environment.${self:provider.stage}}
+plugins:
+  - serverless-plugin-aws-alerts
+
+# SlackServerlessReactionBot
+# Scope and Event : reaction_added/reactions:read
+# SlackServerlessReplyBot
+# Scope and Event : message.channels/channels:history
+# role to invole another lambda
